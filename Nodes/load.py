@@ -25,24 +25,24 @@ def hex_to_array(hex_str: str, reverse: bool = False) -> str:
     hex_str = hex_str.replace(" ", "").replace(":", "").upper()
     if len(hex_str) % 2 != 0:
         raise ValueError(f"Odd-length hex string: {hex_str}")
-    
-    byte_list = [hex_str[i:i+2] for i in range(0, len(hex_str), 2)]
-    
+
+    byte_list = [hex_str[i : i + 2] for i in range(0, len(hex_str), 2)]
+
     if reverse:
         byte_list = byte_list[::-1]
-    
+
     return ", ".join(f"0x{b}" for b in byte_list)
 
 
 def load_keys(json_path: str) -> dict:
     with open(json_path, "r") as f:
         keys = json.load(f)
-    
+
     required = ["APPEUI", "DEVEUI", "APPKEY"]
     for k in required:
         if k not in keys:
             raise KeyError(f"Missing key in JSON: {k}")
-    
+
     return keys
 
 
@@ -53,41 +53,41 @@ def inject_keys(ino_path: str, keys: dict):
     # APPEUI - little endian (reversed)
     appeui_array = hex_to_array(keys["APPEUI"], reverse=True)
     content = re.sub(
-        r'(static const u1_t PROGMEM APPEUI\[8\]\s*=\s*\{)[^}]*(})',
-        rf'\g<1> {appeui_array} \2',
-        content
+        r"(static const u1_t PROGMEM APPEUI\[8\]\s*=\s*\{)[^}]*(})",
+        rf"\g<1> {appeui_array} \2",
+        content,
     )
     # Update comment with original MSB value
     content = re.sub(
-        r'(// Your AppEUI from ChirpStack:\s*)(\S+)',
+        r"(// Your AppEUI from ChirpStack:\s*)(\S+)",
         rf'\g<1>{keys["APPEUI"].upper()}',
-        content
+        content,
     )
 
     # DEVEUI - little endian (reversed)
     deveui_array = hex_to_array(keys["DEVEUI"], reverse=True)
     content = re.sub(
-        r'(static const u1_t PROGMEM DEVEUI\[8\]\s*=\s*\{)[^}]*(})',
-        rf'\g<1> {deveui_array} \2',
-        content
+        r"(static const u1_t PROGMEM DEVEUI\[8\]\s*=\s*\{)[^}]*(})",
+        rf"\g<1> {deveui_array} \2",
+        content,
     )
     content = re.sub(
-        r'(// Your DevEUI from ChirpStack:\s*)(\S+)',
+        r"(// Your DevEUI from ChirpStack:\s*)(\S+)",
         rf'\g<1>{keys["DEVEUI"].upper()}',
-        content
+        content,
     )
 
     # APPKEY - big endian (not reversed)
     appkey_array = hex_to_array(keys["APPKEY"], reverse=False)
     content = re.sub(
-        r'(static const u1_t PROGMEM APPKEY\[16\]\s*=\s*\{)[^}]*(})',
-        rf'\g<1> {appkey_array} \2',
-        content
+        r"(static const u1_t PROGMEM APPKEY\[16\]\s*=\s*\{)[^}]*(})",
+        rf"\g<1> {appkey_array} \2",
+        content,
     )
     content = re.sub(
-        r'(// Your AppKey from ChirpStack:\s*)(\S+)',
+        r"(// Your AppKey from ChirpStack:\s*)(\S+)",
         rf'\g<1>{keys["APPKEY"].upper()}',
-        content
+        content,
     )
 
     with open(ino_path, "w") as f:
@@ -102,9 +102,11 @@ def inject_keys(ino_path: str, keys: dict):
 def main():
     # Default paths - adjust as needed
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    json_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(script_dir, "config.json")
-    ino_path  = sys.argv[2] if len(sys.argv) > 2 else None
+
+    json_path = (
+        sys.argv[1] if len(sys.argv) > 1 else os.path.join(script_dir, "config.json")
+    )
+    ino_path = sys.argv[2] if len(sys.argv) > 2 else None
 
     # Auto-find .ino if not given
     if ino_path is None:
@@ -126,7 +128,7 @@ def main():
         template = {
             "APPEUI": "0000000000000000",
             "DEVEUI": "0000000000000000",
-            "APPKEY": "00000000000000000000000000000000"
+            "APPKEY": "00000000000000000000000000000000",
         }
         with open(json_path, "w") as f:
             json.dump(template, f, indent=4)
