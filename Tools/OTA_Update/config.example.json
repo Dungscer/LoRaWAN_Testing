@@ -1,0 +1,16 @@
+{
+  "chirpstack": {
+    "api_url": "",
+    "api_token": ""
+  },
+  "device": {
+    "dev_eui": "",
+    "tenant_id": "",
+    "application_id": ""
+  },
+  "ota": {
+    "chunk_size": 100,
+    "delay_between_chunks": 15,
+    "port": 1
+  }
+}
