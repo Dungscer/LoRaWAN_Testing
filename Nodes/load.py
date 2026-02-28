@@ -3,11 +3,11 @@
 LoRaWAN OTAA key loader
 Reads keys from a JSON file and injects them into an Arduino .ino file.
 
-keys.json format:
+config.json format:
 {
-    "APPEUI": "0102030405060708",
-    "DEVEUI": "0807060504030201",
-    "APPKEY": "0102030405060708090A0B0C0D0E0F10"
+    "APPEUI": "0000000000000000",
+    "DEVEUI": "0000000000000000",
+    "APPKEY": "00000000000000000000000000000000"
 }
 
 - APPEUI and DEVEUI will be byte-reversed (MSB hex -> LSB array)
@@ -103,7 +103,7 @@ def main():
     # Default paths - adjust as needed
     script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    json_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(script_dir, "keys.json")
+    json_path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(script_dir, "config.json")
     ino_path  = sys.argv[2] if len(sys.argv) > 2 else None
 
     # Auto-find .ino if not given
@@ -118,11 +118,11 @@ def main():
 
     if ino_path is None:
         print("ERROR: Could not find an .ino file. Pass it as the second argument:")
-        print("  python load.py keys.json path/to/sketch.ino")
+        print("  python load.py config.json path/to/sketch.ino")
         sys.exit(1)
 
     if not os.path.exists(json_path):
-        # Create a template keys.json if missing
+        # Create a template config.json if missing
         template = {
             "APPEUI": "0000000000000000",
             "DEVEUI": "0000000000000000",
@@ -130,7 +130,7 @@ def main():
         }
         with open(json_path, "w") as f:
             json.dump(template, f, indent=4)
-        print(f"keys.json not found — created template at: {json_path}")
+        print(f"config.json not found — created template at: {json_path}")
         print("Fill in your keys and run again.")
         sys.exit(0)
 
