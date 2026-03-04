@@ -8,12 +8,11 @@
  *   - Counts sent (uplink) packets
  *   - Counts received (downlink) packets
  *   - Displays stats on OLED
- *   - Prints stats to Serial
+ *   - Prints debug info to Serial
  *******************************************************************************/
-
-// Configure for EU868
 #define CFG_eu868 1
 #define CFG_sx1276_radio 1
+#define LMIC_USE_INTERRUPTS 0   // ← add this line
 #define DISABLE_PING
 #define DISABLE_BEACONS
 
@@ -23,35 +22,41 @@
 #include <Wire.h>
 #include "HT_SSD1306Wire.h"
 
-// ─── OLED Display ─────────────────────────────────────────────────────────────
+// ─── OLED ─────────────────────────────────────────────────────────────────────
 SSD1306Wire display(0x3c, 500000, 4, 15, GEOMETRY_128_64, 16);
 
 // ─── LoRaWAN Credentials ──────────────────────────────────────────────────────
-// AppEUI — little-endian (LSB first)
+
+// This EUI must be in little-endian format (LSB first)
+// Your AppEUI from ChirpStack: XXXXXXXXXXXXXXXX
 static const u1_t PROGMEM APPEUI[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-// DevEUI — little-endian (LSB first)
+
+// This should also be in little endian format (LSB first)
+// Your DevEUI from ChirpStack: XXXXXXXXXXXXXXXX
 static const u1_t PROGMEM DEVEUI[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-// AppKey — big-endian (MSB first)
-static const u1_t PROGMEM APPKEY[16] = {
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
+
+// This key should be in big endian format (MSB first)
+// Your AppKey from ChirpStack: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+static const u1_t PROGMEM APPKEY[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 void os_getArtEui(u1_t* buf) { memcpy_P(buf, APPEUI, 8); }
 void os_getDevEui(u1_t* buf) { memcpy_P(buf, DEVEUI, 8); }
 void os_getDevKey(u1_t* buf) { memcpy_P(buf, APPKEY, 16); }
 
-// ─── Pin Mapping (Heltec WiFi LoRa 32 V2) ────────────────────────────────────
+// ─── Pin Mapping ──────────────────────────────────────────────────────────────
+// In lmic_pins, map DIO1 to LMIC_UNUSED_PIN and enable polling
 const lmic_pinmap lmic_pins = {
-  .nss  = 18,
-  .rxtx = LMIC_UNUSED_PIN,
-  .rst  = 14,
-  .dio  = {26, 35, 34},
+  .nss        = 18,
+  .rxtx       = LMIC_UNUSED_PIN,
+  .rst        = 14,
+  .dio        = {26, 35, 34},
+  .rxtx_rx_active = 0,
+  .rssi_cal   = 8,
+  .spi_freq   = 8000000,
 };
-
 // ─── Config ───────────────────────────────────────────────────────────────────
-const unsigned TX_INTERVAL = 10;  // seconds between uplinks
-#define PORT_UPLINK 2             // uplink port
+const unsigned TX_INTERVAL = 10;
+#define PORT_UPLINK 2
 
 // ─── Counters ─────────────────────────────────────────────────────────────────
 uint32_t uplinkCount   = 0;
@@ -103,6 +108,9 @@ void processDownlink(uint8_t port, uint8_t* data, uint8_t len) {
   showStats();
 }
 
+// ─── Forward declaration ──────────────────────────────────────────────────────
+void do_send(osjob_t* j);
+
 // ─── LMIC Event Handler ───────────────────────────────────────────────────────
 void onEvent(ev_t ev) {
   switch (ev) {
@@ -133,11 +141,11 @@ void onEvent(ev_t ev) {
       break;
 
     case EV_TXSTART:
-      Serial.printf("⬆  Transmitting uplink #%lu...\n", uplinkCount);
+      Serial.printf("⬆  Transmitting uplink #%lu...\n", uplinkCount + 1);
       updateDisplay(
         "Packet Counter",
         "Transmitting...",
-        "TX #" + String(uplinkCount),
+        "TX #" + String(uplinkCount + 1),
         "RX: " + String(downlinkCount)
       );
       break;
@@ -145,12 +153,32 @@ void onEvent(ev_t ev) {
     case EV_TXCOMPLETE:
       Serial.println(F("EV_TXCOMPLETE"));
 
-      if (LMIC.dataLen) {
-        // Downlink received
-        uint8_t port = LMIC.frame[LMIC.dataBeg - 1];
-        processDownlink(port, &LMIC.frame[LMIC.dataBeg], LMIC.dataLen);
+      // ── Debug flags ──────────────────────────────────────────────────────
+      Serial.printf("   txrxFlags: 0x%02X\n", LMIC.txrxFlags);
+      Serial.printf("   dataLen:   %d\n",     LMIC.dataLen);
+      Serial.printf("   dataBeg:   %d\n",     LMIC.dataBeg);
+
+      // ── Check if an RX window opened ─────────────────────────────────────
+      if (LMIC.txrxFlags & TXRX_DNW1 || LMIC.txrxFlags & TXRX_DNW2) {
+        Serial.println(F("   RX window opened"));
+
+        if (LMIC.dataLen > 0) {
+          if (LMIC.txrxFlags & TXRX_PORT) {
+            // Application payload with port
+            uint8_t port = LMIC.frame[LMIC.dataBeg - 1];
+            processDownlink(port, &LMIC.frame[LMIC.dataBeg], LMIC.dataLen);
+          } else {
+            // MAC commands only, no application port
+            Serial.println(F("   MAC-only frame (no app port), skipping"));
+            showStats();
+          }
+        } else {
+          Serial.println(F("   RX window opened but no payload"));
+          showStats();
+        }
+
       } else {
-        Serial.printf("   No downlink | TX: %lu  RX: %lu\n", uplinkCount, downlinkCount);
+        Serial.println(F("   No RX window this cycle"));
         showStats();
       }
 
@@ -171,7 +199,7 @@ void onEvent(ev_t ev) {
 
 // ─── Send Uplink ──────────────────────────────────────────────────────────────
 /*
- * Payload (8 bytes):
+ * Payload (8 bytes) on port 2:
  *   [0]    'P'
  *   [1]    'K'
  *   [2-3]  uplink counter   (uint16 big-endian)
@@ -212,7 +240,7 @@ void setup() {
 
   Serial.println(F("======================================"));
   Serial.println(F("  LoRaWAN Uplink/Downlink Counter"));
-  Serial.println(F("  Heltec WiFi LoRa 32 V2 — EU868"));
+  Serial.println(F("  Heltec WiFi LoRa 32 V2 - EU868"));
   Serial.println(F("======================================"));
 
   os_init();
