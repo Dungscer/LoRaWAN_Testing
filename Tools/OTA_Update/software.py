@@ -29,6 +29,6 @@ if __name__ == "__main__":
     
 index_page_content = """
 ╔══════════════════════════════════════════════════════════╗
-║       LoRaWAN OTA Update - CURL VERSION (Working!)      ║
+║                   LoRaWAN OTA Update                     ║
 ╚══════════════════════════════════════════════════════════╝
 """
