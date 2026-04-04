@@ -10,3 +10,5 @@ esptool --port /dev/ttyUSB0 --baud 921600 read-flash 0x0 0x800000 flash_dump.bin
 ```
 
 `python3 poc1_flash_dump.py --port /dev/ttyUSB0`
+
+#TODO output log file
