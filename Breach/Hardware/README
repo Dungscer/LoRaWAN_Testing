@@ -1,0 +1,17 @@
+### Application key dump
+
+```bash
+esptool.py --port /dev/ttyUSB0 flash_id >> port_dump
+```
+
+#### Not secured booted ESP firmware dump
+```bash
+esptool --port /dev/ttyUSB0 --baud 921600 read-flash 0x0 0x800000 flash_dump.bin
+```
+
+
+# Teljes futtatás (dump + elemzés)
+`python3 poc1_flash_dump.py --port /dev/ttyUSB0`
+
+# Ha már van dump.bin
+`python3 poc1_flash_dump.py --skip-dump`

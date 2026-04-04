@@ -27,16 +27,16 @@ SSD1306Wire display(0x3c, 500000, 4, 15, GEOMETRY_128_64, 16);
 // ─── LoRaWAN Credentials ──────────────────────────────────────────────────────
 
 // This EUI must be in little-endian format (LSB first)
-// Your AppEUI from ChirpStack: XXXXXXXXXXXXXXXX
-static const u1_t PROGMEM APPEUI[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+// Your AppEUI from ChirpStack: 06CFD4758B9DA524
+static const u1_t PROGMEM APPEUI[8] = { 0x24, 0xA5, 0x9D, 0x8B, 0x75, 0xD4, 0xCF, 0x06 };
 
 // This should also be in little endian format (LSB first)
-// Your DevEUI from ChirpStack: XXXXXXXXXXXXXXXX
-static const u1_t PROGMEM DEVEUI[8] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+// Your DevEUI from ChirpStack: 3A26EEF4B5898CCD
+static const u1_t PROGMEM DEVEUI[8] = { 0xCD, 0x8C, 0x89, 0xB5, 0xF4, 0xEE, 0x26, 0x3A };
 
 // This key should be in big endian format (MSB first)
-// Your AppKey from ChirpStack: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-static const u1_t PROGMEM APPKEY[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+// Your AppKey from ChirpStack: 3D82DCC49D189296353196D24DBF7F57
+static const u1_t PROGMEM APPKEY[16] = { 0x3D, 0x82, 0xDC, 0xC4, 0x9D, 0x18, 0x92, 0x96, 0x35, 0x31, 0x96, 0xD2, 0x4D, 0xBF, 0x7F, 0x57 };
 
 void os_getArtEui(u1_t* buf) { memcpy_P(buf, APPEUI, 8); }
 void os_getDevEui(u1_t* buf) { memcpy_P(buf, DEVEUI, 8); }

@@ -1,0 +1,19 @@
+Warning: DEPRECATED: 'esptool.py' is deprecated. Please use 'esptool' instead. The '.py' suffix will be removed in a future major release.
+Warning: Deprecated: Command 'flash_id' is deprecated. Use 'flash-id' instead.
+esptool v5.2.0
+Connected to ESP32 on /dev/ttyUSB0:
+Chip type:          ESP32-D0WDQ6 (revision v1.1)
+Features:           Wi-Fi, BT, Dual Core + LP Core, 240MHz, Vref calibration in eFuse, Coding Scheme None
+Crystal frequency:  40MHz
+MAC:                88:13:bf:fd:36:e4
+
+Stub flasher running.
+
+Flash Memory Information:
+=========================
+Manufacturer: 85
+Device: 2017
+Detected flash size: 8MB
+Flash voltage set by a strapping pin: 3.3V
+
+Hard resetting via RTS pin...
